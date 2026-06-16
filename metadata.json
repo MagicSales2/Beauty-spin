@@ -1,0 +1,6 @@
+{
+  "name": "Beauty Spin",
+  "description": "Plataforma premium con máquina tragamonedas interactiva de kits de skincare y belleza, con panel administrativo avanzado de analíticas, probabilidad y control de inventario.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
