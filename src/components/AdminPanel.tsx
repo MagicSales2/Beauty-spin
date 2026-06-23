@@ -48,6 +48,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const [activeSubTab, setActiveSubTab] = useState<"metrics" | "kits" | "products" | "users" | "orders" | "settings" | "integrations">("metrics");
 
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
+  const showToast = (text: string, type: "success" | "error" | "info" = "success") => {
+    setToastMessage({ text, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4500);
+  };
+
   // Search filter states
   const [userQuery, setUserQuery] = useState<string>("");
   const [orderQuery, setOrderQuery] = useState<string>("");
@@ -181,9 +189,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleDeleteProduct = (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este insumo cosmético técnico de la base de datos?")) {
-      onUpdateProducts(products.filter(p => p.id !== id));
-    }
+    onUpdateProducts(products.filter(p => p.id !== id));
+    showToast("Insumo de bodega eliminado correctamente.", "info");
   };
 
   // KIT CRUD HANDLERS
@@ -192,17 +199,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     
     // Validate custom products relation is set
     if (kitForm.productRelations.length === 0) {
-      alert("Debes asociar al menos 1 producto químico/cosmético de la bodega a esta combinación de Kit.");
+      showToast("Debes asociar al menos 1 producto de la bodega a este Kit.", "error");
       return;
     }
 
     if (editingKit) {
       const updated = kits.map(k => k.id === editingKit.id ? { ...editingKit, ...kitForm } : k);
       onUpdateKits(updated);
+      showToast("Kit de premios editado exitosamente.", "success");
     } else {
       const nextId = "kit_" + (kits.length + 1);
       const newKit = { id: nextId, ...kitForm };
       onUpdateKits([...kits, newKit]);
+      showToast("Nuevo Kit de premios creado exitosamente.", "success");
     }
     setShowKitModal(false);
     setEditingKit(null);
@@ -226,9 +235,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleDeleteKit = (id: string) => {
-    if (confirm("¿Estás seguro de borrar esta combinación de Kit del pozo de sorteos de la tragamonedas?")) {
-      onUpdateKits(kits.filter(k => k.id !== id));
-    }
+    onUpdateKits(kits.filter(k => k.id !== id));
+    showToast("Kit de premios removido de la ruleta hito.", "info");
   };
 
   const handleToggleKitRelation = (pId: string, qty: number = 1) => {
@@ -295,7 +303,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       spin3CostCoins: spin3CostCoinsForm,
       spin5CostCoins: spin5CostCoinsForm
     });
-    alert("¡Reglas del sistema actualizadas perfectamente!");
+    showToast("¡Reglas del sistema actualizadas perfectamente!", "success");
   };
 
   // Filter lists inside admin panel
@@ -342,7 +350,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   }
 
   return (
-    <div id="beauty-admin-dashboard-container" className="bg-white border border-stone-200/80 rounded-[30px] p-4 sm:p-6 md:p-8 shadow-[0_12px_30px_rgba(27,25,23,0.03)] text-stone-850">
+    <div id="beauty-admin-dashboard-container" className="relative bg-white border border-stone-200/80 rounded-[30px] p-4 sm:p-6 md:p-8 shadow-[0_12px_30px_rgba(27,25,23,0.03)] text-stone-850">
+      
+      {/* Dynamic Toast feedback instead of alerts */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-60 bg-stone-900 border border-stone-850 text-white rounded-2xl px-4 py-3.5 shadow-xl max-w-sm animate-bounce flex items-center gap-3">
+          {toastMessage.type === "success" && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-lg shadow-emerald-500/50" />}
+          {toastMessage.type === "error" && <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 shadow-lg shadow-rose-500/50" />}
+          {toastMessage.type === "info" && <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shrink-0 shadow-lg shadow-cyan-400/50" />}
+          <span className="text-xs font-mono font-medium">{toastMessage.text}</span>
+        </div>
+      )}
       
       {/* Admin Panel Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-stone-200 pb-5">
@@ -1110,7 +1128,7 @@ CREATE TABLE public.orders (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   tracking_number TEXT
 );`);
-                  alert("¡Código SQL copiado al portapapeles con éxito!");
+                  showToast("¡Código SQL copiado con éxito! Ahora puedes pegarlo en el editor de Supabase.", "success");
                 }}
                 className="bg-stone-800 hover:bg-stone-700 text-stone-300 font-mono text-[9px] uppercase font-bold tracking-wider rounded-lg px-2.5 py-1.5 transition active:scale-95"
               >

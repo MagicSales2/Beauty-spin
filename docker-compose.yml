@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slot_machine_app
+    restart: always
+    ports:
+      # Puerto libre fallback por si quieres verificarlo directamente vía IP: http://TU_IP_VPS:3080
+      - "3080:8080"
+    networks:
+      # Red unificada con tu contenedor de Traefik para proxy inverso sin exponer puertos innecesarios
+      - proxy_network
+    labels:
+      - "traefik.enable=true"
+      
+      # Regla de Dominio (Reemplaza 'tusorteo.com' con tu dominio real en Hostinger)
+      - "traefik.http.routers.slotmachine.rule=Host(`tusorteo.com`) || Host(`www.tusorteo.com`)"
+      - "traefik.http.routers.slotmachine.entrypoints=web"
+      
+      # 🔒 Habilitar SSL Automático vía Let's Encrypt (Configuración Recomendada)
+      # Descomenta estas líneas si en tu Traefik principal ya tienes configurado un "certresolver"
+      # - "traefik.http.routers.slotmachine-secure.rule=Host(`tusorteo.com`) || Host(`www.tusorteo.com`)"
+      # - "traefik.http.routers.slotmachine-secure.entrypoints=websecure"
+      # - "traefik.http.routers.slotmachine-secure.tls=true"
+      # - "traefik.http.routers.slotmachine-secure.tls.certresolver=letsencrypt" # Reemplaza por tu resolver de Traefik
+      
+      # Asignación de puerto del servicio interno (Redirige al puerto 8080 donde corre nuestro Nginx)
+      - "traefik.http.services.slotmachine-service.loadbalancer.server.port=8080"
+
+networks:
+  proxy_network:
+    external: true # Hace referencia a tu red de Docker externa existente de Traefik (ej. 'traefik_network', 'web', 'proxy')

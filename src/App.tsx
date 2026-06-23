@@ -120,6 +120,13 @@ export default function App() {
 
   // Reset helper success toast
   const [showResetToast, setShowResetToast] = useState<boolean>(false);
+  const [globalToast, setGlobalToast] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
+  const triggerToast = (text: string, type: "success" | "error" | "info" = "success") => {
+    setGlobalToast({ text, type });
+    setTimeout(() => {
+      setGlobalToast(null);
+    }, 4500);
+  };
 
   // 1. BOOTLOAD STATE FROM LOCAL STORAGE
   useEffect(() => {
@@ -295,7 +302,7 @@ export default function App() {
     const found = users.find(u => u.email.toLowerCase() === loginEmail.trim().toLowerCase());
     if (found) {
       if (!found.isActive) {
-        alert("Esta cuenta se encuentra desactivada por el administrador.");
+        triggerToast("Esta cuenta se encuentra desactivada por el administrador.", "error");
         return;
       }
       setCurrentUser(found);
@@ -308,7 +315,7 @@ export default function App() {
         setAdminViewActive(false);
       }
     } else {
-      alert("No se encontró ningún usuario con ese correo electrónico. Pista: intenta con 'camila.giraldo@gmail.com' o regístrate.");
+      triggerToast("No se encontró ningún usuario con ese correo electrónico. Intenta con 'camila.giraldo@gmail.com' o regístrate.", "error");
     }
   };
 
@@ -320,7 +327,7 @@ export default function App() {
     // Email already registered check
     const exist = users.find(u => u.email.toLowerCase() === regEmail.trim().toLowerCase());
     if (exist) {
-      alert("Este correo ya está registrado, por favor inicia sesión.");
+      triggerToast("Este correo ya está registrado, por favor inicia sesión.", "error");
       return;
     }
 
@@ -352,7 +359,7 @@ export default function App() {
     setRegAddress("");
 
     saveStateToStorage(products, kits, updatedUsers, orders, coupons, systemSettings, spinRecords, activePrizes);
-    alert("¡Registro Exitoso! Te obsequiamos 2 Coins de bienvenida para que gires ya.");
+    triggerToast("¡Registro Exitoso! Te obsequiamos 2 Coins de bienvenida para que gires ya.", "success");
   };
 
   // RECOVER INTERACTION
@@ -370,7 +377,7 @@ export default function App() {
 
   const handleSetNewPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Contraseña restablecida con éxito. Inicia sesión ya!");
+    triggerToast("Contraseña restablecida con éxito. Inicia sesión ya!", "success");
     setRecoverySent(false);
     setRecoverySuccess(false);
     setRecoveryEmail("");
@@ -630,6 +637,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FCFAF6] text-stone-800 flex flex-col font-sans transition-all selection:bg-rose-100 selection:text-rose-900 pb-12 relative overflow-x-hidden">
+      
+      {/* Global Toast notifications replacing native blocking alert panels */}
+      {globalToast && (
+        <div className="fixed top-5 right-5 z-60 bg-stone-900 border border-stone-850 text-white rounded-2xl px-5 py-4 shadow-xl max-w-sm flex items-center gap-3.5 animate-bounce">
+          {globalToast.type === "success" && <div className="w-3 h-3 rounded-full bg-emerald-500 shrink-0 shadow-lg shadow-emerald-500/50" />}
+          {globalToast.type === "error" && <div className="w-3 h-3 rounded-full bg-rose-500 shrink-0 shadow-lg shadow-rose-500/50" />}
+          {globalToast.type === "info" && <div className="w-3 h-3 rounded-full bg-cyan-400 shrink-0 shadow-lg shadow-cyan-400/50" />}
+          <span className="text-xs font-mono font-medium">{globalToast.text}</span>
+        </div>
+      )}
       
       {/* Background Atmospheric Glows */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-rose-200 opacity-20 blur-[120px] rounded-full pointer-events-none z-0"></div>

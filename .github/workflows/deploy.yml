@@ -1,0 +1,59 @@
+name: CI/CD Pipeline - Hostinger VPS Deployment
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Lint Code
+        run: npm run lint
+
+      - name: Build Application
+        run: npm run build
+
+      # ========================================================================
+      # OPTIONAL AUTOMATED DEPLOYMENT TO HOSTINGER VPS VIA DOCKER / SSH
+      # To enable this, configure the Secrets in your GitHub Repository settings:
+      # Settings > Secrets and variables > Actions
+      # ========================================================================
+      #
+      # - name: Deploy to Hostinger VPS
+      #   if: github.ref == 'refs/heads/main'
+      #   uses: appleboy/ssh-action@v1.0.3
+      #   with:
+      #     host: ${{ secrets.VPS_HOST }}
+      #     username: ${{ secrets.VPS_USERNAME }}
+      #     key: ${{ secrets.VPS_SSH_KEY }} # Or use password: ${{ secrets.VPS_PASSWORD }}
+      #     port: ${{ secrets.VPS_PORT || '22' }}
+      #     script: |
+      #       # Navigate to your project directory on Hostinger VPS
+      #       cd /home/vps-user/slot-machine-project || git clone <YOUR_GIT_REPO_URL> /home/vps-user/slot-machine-project && cd /home/vps-user/slot-machine-project
+      #       
+      #       # Pull the latest changes from GitHub
+      #       git pull origin main
+      #       
+      #       # Rebuild and restart the container mapping to a free port
+      #       docker compose down
+      #       docker compose up -d --build
+      #       
+      #       echo "Deployment completed successfully! Application is running on port 3080 (or your configured port)."
