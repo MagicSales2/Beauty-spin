@@ -1,12 +1,12 @@
-version: '3'
+version: '3.8'
 
 services:
   app:
-    image: ghcr.io/PLACEHOLDER_OWNER/PLACEHOLDER_REPO:latest
+    image: ghcr.io/magicsales2/beauty-spin:latest
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: slot_machine_app
+    container_name: beauty_spin_app
     restart: always
     ports:
       # Puerto libre fallback para que pruebes tu aplicación directamente por IP (http://TU_IP_VPS:3080)
@@ -15,18 +15,14 @@ services:
       - proxy_network
     labels:
       - "traefik.enable=true"
-      # Reemplaza 'tu-dominio.com' por el dominio que vayas a usar para tu juego de tragamonedas
-      - "traefik.http.routers.slotmachine.rule=Host(`tu-dominio.com`) || Host(`www.tu-dominio.com`)"
-      - "traefik.http.routers.slotmachine.entrypoints=web"
+      # Dominio o subdominio asignado a tu aplicación
+      - "traefik.http.routers.beauty_spin1.rule=Host(`beauty_spin1.srv1758628.hstgr.cloud`)"
+      - "traefik.http.routers.beauty_spin1.entrypoints=websecure"
+      - "traefik.http.routers.beauty_spin1.tls=true"
+      - "traefik.http.routers.beauty_spin1.tls.certresolver=letsencrypt"
       
-      # 🔒 Redirección automática a HTTPS y auto-SSL mediante Let's Encrypt
-      - "traefik.http.routers.slotmachine-secure.rule=Host(`tu-dominio.com`) || Host(`www.tu-dominio.com`)"
-      - "traefik.http.routers.slotmachine-secure.entrypoints=websecure"
-      - "traefik.http.routers.slotmachine-secure.tls=true"
-      - "traefik.http.routers.slotmachine-secure.tls.certresolver=letsencrypt"
-      
-      # Indica a Traefik que el servicio interno escucha en el puerto 8080 (donde corre nuestro Nginx en Docker)
-      - "traefik.http.services.slotmachine-service.loadbalancer.server.port=8080"
+      # Indica a Traefik que el puerto interno del contenedor es el 8080 (donde escucha Nginx)
+      - "traefik.http.services.beauty_spin1.loadbalancer.server.port=8080"
 
 networks:
   proxy_network:
