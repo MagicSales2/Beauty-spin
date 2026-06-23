@@ -2,6 +2,7 @@ version: '3'
 
 services:
   app:
+    image: ghcr.io/PLACEHOLDER_OWNER/PLACEHOLDER_REPO:latest
     build:
       context: .
       dockerfile: Dockerfile

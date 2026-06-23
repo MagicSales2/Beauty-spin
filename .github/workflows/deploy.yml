@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,6 +36,40 @@ jobs:
         run: npm run build
 
       # ========================================================================
+      # AUTOMATED DOCKER BUILD & PUSH TO GITHUB CONTAINER REGISTRY (GHCR)
+      # This builds a public Docker image that can be pulled from anywhere!
+      # ========================================================================
+      - name: Log in to the Container registry
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        if: github.ref == 'refs/heads/main'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+
+      - name: Set up Docker Buildx
+        if: github.ref == 'refs/heads/main'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # ========================================================================
       # AUTOMATED DEPLOYMENT TO HOSTINGER VPS VIA DOCKER / SSH
       # Configure these secrets in your GitHub Repository:
       # Settings > Secrets and variables > Actions:
@@ -51,10 +89,15 @@ jobs:
           script: |
             echo "Starting deployment on Hostinger VPS..."
             
-            # 1. Define project folder named after repository
-            PROJECT_DIR="/home/${{ secrets.VPS_USERNAME }}/${{ github.event.repository.name }}"
+            # 1. Define project folder (uses VPS_PROJECT_NAME secret if defined, otherwise falls back to repository name)
+            PROJECT_NAME="${{ secrets.VPS_PROJECT_NAME }}"
+            if [ -z "$PROJECT_NAME" ]; then
+              PROJECT_NAME="${{ github.event.repository.name }}"
+            fi
+            
+            PROJECT_DIR="/home/${{ secrets.VPS_USERNAME }}/$PROJECT_NAME"
             if [ "${{ secrets.VPS_USERNAME }}" = "root" ]; then
-              PROJECT_DIR="/root/${{ github.event.repository.name }}"
+              PROJECT_DIR="/root/$PROJECT_NAME"
             fi
             
             echo "Target Deployment Directory: $PROJECT_DIR"
@@ -71,14 +114,25 @@ jobs:
               git reset --hard origin/main
             fi
             
-            # 3. Prevent external network crash: Create the external proxy network if it doesn't exist
+            # 3. Dynamic adjustment of the docker-compose.yml file to pull the correct pre-built public image
+            LOWER_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            echo "Injected Image Name: ghcr.io/${LOWER_REPO}:latest"
+            
+            # Replace the image tag or add it if not exists, and remove local build directive on production to load prebuilt image
+            # This avoids having to compile anything on the VPS
+            sed -i "s|image: .*|image: ghcr.io/${LOWER_REPO}:latest|g" docker-compose.yml
+            
+            # 4. Prevent external network crash: Create the external proxy network if it doesn't exist
             echo "Ensuring proxy_network network exists..."
             docker network create proxy_network || true
             
-            # 4. Spin up the containerized application behind Traefik
+            # 5. Pull new image and spin up containers
+            echo "Pulling latest pre-built public Docker image from GHCR..."
+            docker compose pull app
+            
             echo "Launching docker-compose containers..."
             docker compose down --remove-orphans
-            docker compose up -d --build
+            docker compose up -d
             
             echo "========================================="
             echo "Deployment to Hostinger VPS completed! 🎉"
